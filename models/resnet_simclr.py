@@ -2,6 +2,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
 
+from models.vos_net import VOSNet
+
 
 class ResNetSimCLR(nn.Module):
 
@@ -9,15 +11,10 @@ class ResNetSimCLR(nn.Module):
         super(ResNetSimCLR, self).__init__()
         self.resnet_dict = {"resnet18": models.resnet18(pretrained=False),
                             "resnet50": models.resnet50(pretrained=False)}
-
-        resnet = self._get_basemodel(base_model)
-        num_ftrs = resnet.fc.in_features
-
-        self.features = nn.Sequential(*list(resnet.children())[:-1])
+        self.net = VOSNet('resnet50')
 
         # projection MLP
-        self.l1 = nn.Linear(num_ftrs, num_ftrs)
-        self.l2 = nn.Linear(num_ftrs, out_dim)
+        self.l1 = nn.Linear(256 * 32 * 32, out_dim)
 
     def _get_basemodel(self, model_name):
         try:
@@ -28,10 +25,6 @@ class ResNetSimCLR(nn.Module):
             raise ("Invalid model name. Check the config file and pass one of: resnet18 or resnet50")
 
     def forward(self, x):
-        h = self.features(x)
-        h = h.squeeze()
-
-        x = self.l1(h)
-        x = F.relu(x)
-        x = self.l2(x)
+        h = self.net(x)
+        x = self.l1(h.view(-1, 256 * 32 * 32))
         return h, x
