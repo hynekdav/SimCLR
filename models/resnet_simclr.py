@@ -1,5 +1,4 @@
 import torch.nn as nn
-import torch.nn.functional as F
 import torchvision.models as models
 
 from models.vos_net import VOSNet

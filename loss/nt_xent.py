@@ -45,6 +45,9 @@ class NTXentLoss(torch.nn.Module):
         return v
 
     def forward(self, zis, zjs):
+        zis = zis.to(self.device)
+        zjs = zjs.to(self.device)
+        
         representations = torch.cat([zjs, zis], dim=0)
 
         similarity_matrix = self.similarity_function(representations, representations)
@@ -59,7 +62,7 @@ class NTXentLoss(torch.nn.Module):
         logits = torch.cat((positives, negatives), dim=1)
         logits /= self.temperature
 
-        labels = torch.zeros(2 * self.batch_size).to(self.device).long()
+        labels = torch.zeros(2 * self.batch_size, device=self.device).long()
         loss = self.criterion(logits, labels)
 
         return loss / (2 * self.batch_size)

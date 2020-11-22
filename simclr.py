@@ -1,4 +1,6 @@
 import torch
+from torch.nn import DataParallel
+
 from models.resnet_simclr import ResNetSimCLR
 from torch.utils.tensorboard import SummaryWriter
 import torch.nn.functional as F
@@ -36,7 +38,7 @@ class SimCLR(object):
         self.device = self._get_device()
         self.writer = SummaryWriter()
         self.dataset = dataset
-        self.nt_xent_criterion = NTXentLoss(self.device, config['batch_size'], **config['loss'])
+        self.nt_xent_criterion = NTXentLoss(torch.device('cpu'), config['batch_size'], **config['loss'])
 
     def _get_device(self):
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -62,7 +64,8 @@ class SimCLR(object):
 
         train_loader, valid_loader = self.dataset.get_data_loaders()
 
-        model = ResNetSimCLR(**self.config["model"]).to(self.device)
+        model = ResNetSimCLR(**self.config["model"])
+        model = DataParallel(model).to(self.device)
         model = self._load_pre_trained_weights(model)
 
         optimizer = torch.optim.Adam(model.parameters(), 3e-4, weight_decay=eval(self.config['weight_decay']))

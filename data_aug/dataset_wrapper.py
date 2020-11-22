@@ -10,19 +10,20 @@ np.random.seed(0)
 
 class DataSetWrapper(object):
 
-    def __init__(self, batch_size, num_workers, valid_size, input_shape, s):
+    def __init__(self, batch_size, num_workers, valid_size, input_shape, s, path):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.valid_size = valid_size
         self.s = s
         self.input_shape = eval(input_shape)
+        self.dataset_path = path
 
     def get_data_loaders(self):
         data_augment = self._get_simclr_pipeline_transform()
 
-        #train_dataset = datasets.STL10('./data', split='train+unlabeled', download=True,
+        # train_dataset = datasets.STL10('./data', split='train+unlabeled', download=True,
         #                               transform=SimCLRDataTransform(data_augment))
-        train_dataset = datasets.ImageFolder('/home/hynek/skola/FEL/5. semestr/SimCLR/DAVIS_train/JPEGImages/480p/', transform=SimCLRDataTransform(data_augment))
+        train_dataset = datasets.ImageFolder(self.dataset_path, transform=SimCLRDataTransform(data_augment))
 
         train_loader, valid_loader = self.get_train_validation_data_loaders(train_dataset)
         return train_loader, valid_loader
@@ -35,7 +36,11 @@ class DataSetWrapper(object):
                                               transforms.RandomApply([color_jitter], p=0.8),
                                               transforms.RandomGrayscale(p=0.2),
                                               GaussianBlur(kernel_size=int(0.1 * self.input_shape[0])),
-                                              transforms.ToTensor()])
+                                              transforms.ToTensor(),
+                                              transforms.Normalize(
+                                                  mean=[0.485, 0.456, 0.406],
+                                                  std=[0.229, 0.224, 0.225])
+                                              ])
         return data_transforms
 
     def get_train_validation_data_loaders(self, train_dataset):
