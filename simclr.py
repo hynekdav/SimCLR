@@ -8,7 +8,7 @@ from loss.nt_xent import NTXentLoss
 import os
 import shutil
 import sys
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 apex_support = False
 try:
@@ -87,8 +87,8 @@ class SimCLR(object):
         valid_n_iter = 0
         best_valid_loss = np.inf
 
-        for epoch_counter in range(self.config['epochs']):
-            for (xis, xjs), _ in tqdm(train_loader):
+        for epoch_counter in trange(self.config['epochs']):
+            for (xis, xjs), _ in tqdm(train_loader, desc=f'Training epoch {epoch_counter}.'):
                 optimizer.zero_grad()
 
                 xis = xis.to(self.device)
@@ -98,6 +98,7 @@ class SimCLR(object):
 
                 if n_iter % self.config['log_every_n_steps'] == 0:
                     self.writer.add_scalar('train_loss', loss, global_step=n_iter)
+                    tqdm.write(f'Train loss = {loss.item()}')
 
                 if apex_support and self.config['fp16_precision']:
                     with amp.scale_loss(loss, optimizer) as scaled_loss:
@@ -117,12 +118,13 @@ class SimCLR(object):
                     torch.save(model.state_dict(), os.path.join(model_checkpoints_folder, 'model.pth'))
 
                 self.writer.add_scalar('validation_loss', valid_loss, global_step=valid_n_iter)
+                tqdm.write(f'Validation loss = {valid_loss}')
                 valid_n_iter += 1
 
             # warmup for the first 10 epochs
             if epoch_counter >= 10:
                 scheduler.step()
-            self.writer.add_scalar('cosine_lr_decay', scheduler.get_lr()[0], global_step=n_iter)
+            self.writer.add_scalar('cosine_lr_decay', scheduler.get_last_lr()[0], global_step=n_iter)
 
     def _load_pre_trained_weights(self, model):
         try:
