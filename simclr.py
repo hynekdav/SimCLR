@@ -145,7 +145,7 @@ class SimCLR(object):
 
             valid_loss = 0.0
             counter = 0
-            for (xis, xjs), _ in valid_loader:
+            for (xis, xjs), _ in tqdm(valid_loader, desc='Validating.'):
                 xis = xis.to(self.device)
                 xjs = xjs.to(self.device)
 
